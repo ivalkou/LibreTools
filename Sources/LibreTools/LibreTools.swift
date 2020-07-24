@@ -31,4 +31,8 @@ public enum LibreTools {
 }
 
 @available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
-final class LibreToolsViewController: UIHostingController<AnyView> {}
+final class LibreToolsViewController: UIHostingController<AnyView> {
+    convenience init() {
+        self.init(rootView: AnyView(EmptyView()))
+    }
+}
