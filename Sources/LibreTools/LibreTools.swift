@@ -18,10 +18,11 @@ public enum LibreTools {
         LibreToolsView(unlockCode: unlockCode, password: password)
     }
 
-    public static func makeViewController(unlockCode: Int? = nil, password: Data? = nil) -> UIViewController {
+    public static func makeViewController(unlockCode: Int? = nil, password: Data? = nil, onClose: (() -> Void)?) -> UIViewController {
         let navigationView = NavigationView {
             makeView(unlockCode: unlockCode, password: password)
             .navigationBarTitle("Libre Tools")
+                .navigationBarItems(leading: Button("Close") { onClose?()} )
         }
         return UIHostingController(rootView: navigationView)
     }
