@@ -10,6 +10,7 @@ import CoreNFC
 import Combine
 import Foundation
 
+@available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
 public protocol NFCManager {
     func perform(_ request: ActionRequest) -> AnyPublisher<String, Never>
     func setCredentials(unlockCode: Int, password: Data)
@@ -37,6 +38,7 @@ enum NFCManagerError: Error, LocalizedError {
     }
 }
 
+@available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
 final class BaseNFCManager: NSObject, NFCManager {
     private enum Config {
         static let numberOfFRAMBlocks = 0xF4
@@ -187,6 +189,7 @@ final class BaseNFCManager: NSObject, NFCManager {
     }
 }
 
+@available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
 extension BaseNFCManager: NFCTagReaderSessionDelegate {
     func tagReaderSessionDidBecomeActive(_ session: NFCTagReaderSession) {
         print("Started scanning for tags")
@@ -218,6 +221,7 @@ extension Data {
     }
 }
 
+@available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
 private extension NFCISO15693Tag {
     func runCommand(_ cmd: CustomCommand, parameters: Data = Data()) -> AnyPublisher<Data, Error> {
         Future { promise in

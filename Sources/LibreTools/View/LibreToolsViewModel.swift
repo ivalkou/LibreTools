@@ -9,6 +9,7 @@
 import SwiftUI
 import Combine
 
+@available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
 final class LibreToolsViewModel: ObservableObject {
     private let nfcManager: NFCManager
 

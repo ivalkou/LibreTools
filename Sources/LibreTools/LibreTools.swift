@@ -8,6 +8,7 @@
 
 import SwiftUI
 
+@available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
 public enum LibreTools {
     public static func makeNFCManager(unlockCode: Int? = nil, password: Data? = nil) -> NFCManager {
         BaseNFCManager(unlockCode: unlockCode, password: password)
