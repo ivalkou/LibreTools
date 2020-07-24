@@ -18,12 +18,17 @@ public enum LibreTools {
         LibreToolsView(unlockCode: unlockCode, password: password)
     }
 
-    public static func makeViewController(unlockCode: Int? = nil, password: Data? = nil, onClose: (() -> Void)?) -> UIViewController {
+    public static func makeViewController(unlockCode: Int? = nil, password: Data? = nil) -> UIViewController {
+        let vc = LibreToolsViewController()
         let navigationView = NavigationView {
-            makeView(unlockCode: unlockCode, password: password)
-            .navigationBarTitle("Libre Tools")
-                .navigationBarItems(leading: Button("Close") { onClose?()} )
+                makeView(unlockCode: unlockCode, password: password)
+                .navigationBarTitle("Libre Tools")
+                .navigationBarItems(leading: Button("Close") { [weak vc] in vc?.dismiss(animated: true)} )
         }
-        return UIHostingController(rootView: navigationView)
+        vc.rootView = AnyView(navigationView)
+        return vc
     }
 }
+
+@available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
+final class LibreToolsViewController: UIHostingController<AnyView> {}
