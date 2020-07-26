@@ -85,13 +85,11 @@ enum SensorState: UInt8 {
     case error
 }
 
-public enum SensorRegion: UInt8, CustomStringConvertible, Identifiable {
-    case europe = 0x01
-    case usa = 0x02
-    case newZeland = 0x04
-    case asia = 0x08
-    case unknown = 0x00
+extension SensorRegion {
+    static let selectCases: [SensorRegion] = [.europe, .usa, .newZeland, .asia]
+}
 
+extension SensorRegion: CustomStringConvertible {
     public var description: String {
         switch self {
         case .europe:
@@ -106,8 +104,8 @@ public enum SensorRegion: UInt8, CustomStringConvertible, Identifiable {
             return "Unknown"
         }
     }
+}
 
+extension SensorRegion: Identifiable {
     public var id: UInt8 { rawValue }
-
-    static let selectCases: [SensorRegion] = [.europe, .usa, .newZeland, .asia]
 }

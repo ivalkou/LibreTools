@@ -10,20 +10,6 @@ import CoreNFC
 import Combine
 import Foundation
 
-@available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
-public protocol NFCManager {
-    func perform(_ request: ActionRequest) -> AnyPublisher<String, Never>
-    func setCredentials(unlockCode: Int, password: Data)
-}
-
-public enum ActionRequest {
-    case readState
-    case readFRAM
-    case reset
-    case activate
-    case changeRegion(SensorRegion)
-}
-
 enum NFCManagerError: Error, LocalizedError {
     case unsupportedSensorType
     case missingUnlockParameters
