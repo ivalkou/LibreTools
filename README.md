@@ -10,6 +10,10 @@ LibreTools framework required iOS SDK version of 13.0. In `Package.swift`  versi
 
 LibreTools can be installed via SPM. Create a new Xcode project and navigate to File > Swift Packages > Add Package Dependency. Enter the url `https://github.com/ivalkou/LibreTools` and tap Next. Choose the master branch, and on the next screen, check off the packages as needed.
 
+# Configure Xcode project
+
+Add  `Near Field Commutication Tag Reading` capability in your tagret `Signing & Capabilities` tab.  Add `NFCReaderUsageDescription` key to `Info.plist` and provide a usage description.
+
 # Usage
 
 ## Option 1: NFCManager
