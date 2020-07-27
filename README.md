@@ -23,7 +23,7 @@ let subscription: AnyCancellable?
 
 // perform a request
 subscription = nfcManager.perform(.readState)
-    .reseive(on: DispatchQueue.main)
+    .receive(on: DispatchQueue.main)
     .assign(to: \.log, on: self)
 ```
 
