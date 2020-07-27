@@ -12,7 +12,7 @@ LibreTools can be installed via SPM. Create a new Xcode project and navigate to 
 
 # Configure Xcode project
 
-Add  `Near Field Commutication Tag Reading` capability in your tagret `Signing & Capabilities` tab.  Add `NFCReaderUsageDescription` key to `Info.plist` and provide a usage description.
+Add  `Near Field Communication Tag Reading` capability in your tagret `Signing & Capabilities` tab.  Add `NFCReaderUsageDescription` key to `Info.plist` and provide a usage description.
 
 # Usage
 
