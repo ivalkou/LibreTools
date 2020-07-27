@@ -6,6 +6,8 @@
 //  Copyright © 2020 Ivan Valkou. All rights reserved.
 //
 
+#if canImport(Combine)
+
 import SwiftUI
 import Combine
 
@@ -75,3 +77,5 @@ public enum SensorRegion: UInt8 {
     case asia = 0x08
     case unknown = 0x00
 }
+
+#endif

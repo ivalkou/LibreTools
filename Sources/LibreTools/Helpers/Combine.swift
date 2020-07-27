@@ -6,6 +6,7 @@
 //  Copyright © 2020 Ivan Valkou. All rights reserved.
 //
 
+#if canImport(Combine)
 
 import Combine
 
@@ -45,3 +46,5 @@ extension Publisher {
         }.eraseToAnyPublisher()
     }
 }
+
+#endif

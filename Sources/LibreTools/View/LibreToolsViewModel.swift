@@ -6,6 +6,8 @@
 //  Copyright © 2020 Ivan Valkou. All rights reserved.
 //
 
+#if canImport(Combine)
+
 import SwiftUI
 import Combine
 
@@ -101,3 +103,5 @@ extension Data {
         map { String(format: "%02x", $0) }.joined()
     }
 }
+
+#endif

@@ -6,6 +6,8 @@
 //  Copyright © 2020 Ivan Valkou. All rights reserved.
 //
 
+#if canImport(Combine)
+
 import CoreNFC
 import Combine
 import Foundation
@@ -340,4 +342,4 @@ extension Data {
     }
 }
 
-
+#endif
