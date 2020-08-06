@@ -25,7 +25,7 @@ enum Libre2 {
         var result = [UInt8]()
 
         for i in 0 ..< 43 {
-            let s1: UInt16 = {
+            let s1: UInt16 = UInt16(id[5], id[4]) + {
                 switch type {
                 case .libreUS14day:
                     if i < 3 || i >= 40 {
@@ -34,10 +34,10 @@ enum Libre2 {
                     }
                     return UInt16(info[5], info[4])
                 case .libre2:
-                    return ((UInt16(id[5], id[4]) + (UInt16(info[5], info[4]) ^ 0x44)) + UInt16(i))
+                    return UInt16(info[5], info[4]) ^ 0x44
                 default: fatalError("Unsupported sensor type")
                 }
-            }()
+            }() + UInt16(i)
             let s2 = UInt16(id[3], id[2]) + key[2]
             let s3 = UInt16(id[1], id[0]) + (UInt16(i) << 1)
             let s4 = 0x241a ^ key[3]
