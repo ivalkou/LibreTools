@@ -28,6 +28,10 @@ struct LibreToolsView: View {
                     self.viewModel.read()
                 }
 
+                Button("Read history") {
+                    self.viewModel.readHistory()
+                }
+
                 Button("Read FRAM") {
                     self.viewModel.dump()
                 }
@@ -90,7 +94,7 @@ struct LibreToolsView: View {
                         .keyboardType(.asciiCapable)
                         .autocapitalization(.allCharacters)
                         .disableAutocorrection(true)
-                    TextField("Password", text: self.$viewModel.password).keyboardType(.asciiCapable)
+                    TextField("Password", text: self.$viewModel.password)
                         .keyboardType(.asciiCapable)
                         .autocapitalization(.allCharacters)
                         .disableAutocorrection(true)

@@ -28,10 +28,6 @@ enum NFCManagerError: Error, LocalizedError {
 
 @available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
 final class BaseNFCManager: NSObject, NFCManager {
-    private enum Config {
-        static let numberOfFRAMBlocks = 0xF4
-    }
-
     private var session: NFCTagReaderSession?
 
     private let nfcQueue = DispatchQueue(label: "NFCManager.nfcQueue")
@@ -46,16 +42,17 @@ final class BaseNFCManager: NSObject, NFCManager {
         }
     }
 
-    @Published private var sessionLog = ""
+    private var sessionLog = ""
+    private var readingsSubject = PassthroughSubject<Reading, Never>()
 
     private var unlockCode: Int?
     private var password: Data?
 
-    func perform(_ request: ActionRequest) -> AnyPublisher<String, Never> {
+    func perform(_ request: ActionRequest) -> AnyPublisher<Reading, Never> {
         sessionLog = ""
         log("Start processing...")
         actionRequest = request
-        return $sessionLog.eraseToAnyPublisher()
+        return readingsSubject.eraseToAnyPublisher()
     }
 
     func setCredentials(unlockCode: Int, password: Data) {
@@ -70,7 +67,7 @@ final class BaseNFCManager: NSObject, NFCManager {
 
     private func startSession() {
         guard NFCReaderSession.readingAvailable, actionRequest != nil else {
-            sessionLog = "You phone is not supporting NFC"
+            sessionLog = "Your phone does not support NFC"
             actionRequest = nil
             return
         }
@@ -91,10 +88,11 @@ final class BaseNFCManager: NSObject, NFCManager {
         }
 
         log("Tag connected")
-        log("UID: \(tag.identifier.hexEncodedString())")
+        let uid = tag.identifier
+        log("UID: \(uid.hexEncodedString())")
 
         sessionToken = tag.getPatchInfo()
-            .flatMap { data -> AnyPublisher<Data, Error> in
+            .flatMap { data -> AnyPublisher<(Data, String), Error> in
                 let patchInfo = data.hexEncodedString()
                 let sensorType = SensorType(patchInfo: patchInfo)
                 let region = SensorRegion(rawValue: [UInt8](data)[3]) ?? .unknown
@@ -104,28 +102,36 @@ final class BaseNFCManager: NSObject, NFCManager {
                 switch actionRequest {
                 case .readState:
                     return tag.readFRAM(blocksCount: 1)
+                        .map { ($0, patchInfo) }
+                        .eraseToAnyPublisher()
                 case .readFRAM:
-                    return tag.readFRAM(blocksCount: Config.numberOfFRAMBlocks)
+                    return tag.readFRAM(blocksCount: 0xFF)
+                        .map { ($0, patchInfo) }
+                        .eraseToAnyPublisher()
+                case .readHistory:
+                    return tag.readFRAM(blocksCount: 43)
+                        .map { ($0, patchInfo) }
+                        .eraseToAnyPublisher()
                 case .reset:
                     guard let unlockCode = self.unlockCode, let password = self.password else {
                         return Fail(error: NFCManagerError.missingUnlockParameters).eraseToAnyPublisher()
                     }
                     return tag.reinitialize(sensorType: sensorType, unlockCode: unlockCode, password: password)
-                        .map { Data() }
+                        .map { (Data(), patchInfo) }
                         .eraseToAnyPublisher()
                 case .activate:
                     guard let password = self.password else {
                         return Fail(error: NFCManagerError.missingUnlockParameters).eraseToAnyPublisher()
                     }
                     return tag.activate(sensorType: sensorType, password: password)
-                        .map { Data() }
+                        .map { (Data(), patchInfo) }
                         .eraseToAnyPublisher()
                 case let .changeRegion(region):
                     guard let unlockCode = self.unlockCode, let password = self.password else {
                         return Fail(error: NFCManagerError.missingUnlockParameters).eraseToAnyPublisher()
                     }
                     return tag.changeRegion(sensorType: sensorType, region: region, unlockCode: unlockCode, password: password)
-                        .map { Data() }
+                        .map { (Data(), patchInfo) }
                         .eraseToAnyPublisher()
                 }
             }
@@ -141,39 +147,51 @@ final class BaseNFCManager: NSObject, NFCManager {
                         self.session?.invalidate(errorMessage: error.localizedDescription)
                     }
                 },
-                receiveValue: { self.processResult(with: $0) }
+                receiveValue: { self.processResult(data: $0.0, uid: uid, patchInfo: $0.1) }
             )
     }
 
 
-    private func processResult(with data: Data) {
+    private func processResult(data: Data, uid: Data, patchInfo: String) {
         dispatchPrecondition(condition: .onQueue(accessQueue))
 
         print(data)
         let bytes = [UInt8](data)
+        var sensorData: SensorData? = nil
 
         switch actionRequest {
         case .readState:
             let state = SensorState(rawValue: bytes[4]) ?? .unknown
-            self.log("Sensor state: \(state) (\(state.rawValue))")
+            log("Sensor state: \(state) (\(state.rawValue))")
         case .readFRAM:
             let state = SensorState(rawValue: bytes[4]) ?? .unknown
-            self.log("Sensor state: \(state) (\(state.rawValue))")
-            self.log("\nFRAM dump:\n\n\(data.dumpString)")
+            log("Sensor state: \(state) (\(state.rawValue))")
+            log("\nFRAM dump:\n\n\(data.dumpString)")
         case .activate:
-            self.log("Sensor activated successfully")
+            log("Sensor activated successfully")
         case .reset:
-            self.log("Sensor restarted successfully")
+            log("Sensor restarted successfully")
         case let .changeRegion(region):
-            self.log("Region changed to \(region)")
-        default: break
+            log("Region changed to \(region)")
+        case .readHistory:
+            let state = SensorState(rawValue: bytes[4]) ?? .unknown
+            log("Sensor state: \(state) (\(state.rawValue))")
+            sensorData = SensorData(uuid: uid, bytes: bytes, date: Date(), patchInfo: patchInfo)
+            if let sensorData = sensorData {
+                log("Age: \(sensorData.humanReadableSensorAge)")
+                log("History: \(sensorData.glucoseHistory)")
+                log("Trend: \(sensorData.glucoseTrend)")
+            }
+        case .none: break
         }
         actionRequest = nil
+        readingsSubject.send(Reading(log: sessionLog, sensorData: sensorData))
     }
 
     private func log(_ message: String) {
         print(message)
         sessionLog += message + "\n"
+//        readingsSubject.send(Reading(log: sessionLog, sensorData: nil))
     }
 }
 
@@ -200,12 +218,6 @@ extension BaseNFCManager: NFCTagReaderSessionDelegate {
             default: break
             }
         }
-    }
-}
-
-extension Data {
-    func hexEncodedString() -> String {
-        return map { String(format: "%02X", $0) }.joined(separator: " ")
     }
 }
 
@@ -238,7 +250,11 @@ private extension NFCISO15693Tag {
     func readFRAM(blocksCount: Int) -> AnyPublisher<Data, Error> {
         Publishers.Sequence(
                 sequence: (UInt8(0) ..< UInt8(blocksCount))
-                    .map { self.readBlock(number: $0) }
+                    .map { self.readBlock(number: $0)
+                        .catch { _ -> Future<Data, Error> in
+                            Future { $0(.success(Data())) }
+                    }
+                }
             )
             .flatMap { $0 }
             .collect()

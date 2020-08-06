@@ -58,13 +58,14 @@ public enum LibreTools {
 
 @available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
 public protocol NFCManager {
-    func perform(_ request: ActionRequest) -> AnyPublisher<String, Never>
+    func perform(_ request: ActionRequest) -> AnyPublisher<Reading, Never>
     func setCredentials(unlockCode: Int, password: Data)
 }
 
 public enum ActionRequest {
     case readState
     case readFRAM
+    case readHistory
     case reset
     case activate
     case changeRegion(SensorRegion)

@@ -28,7 +28,9 @@ let subscription: AnyCancellable?
 // perform a request
 subscription = nfcManager.perform(.readState)
     .receive(on: DispatchQueue.main)
-    .assign(to: \.log, on: self)
+    .sink { reading in
+        // Do something with reading 
+    }
 ```
 
 ## Option 2: SwiftUI

@@ -20,7 +20,7 @@ final class LibreToolsViewModel: ObservableObject {
         static let passwordKey = "LibreTools.password"
     }
     
-    @Published var log = "Ready to scan"
+    @Published var log = "Select an operation"
     @Published var region: SensorRegion?
     @Published var unlockCode = ""
     @Published var password = ""
@@ -41,31 +41,49 @@ final class LibreToolsViewModel: ObservableObject {
     func read() {
         inputSubscription = nfcManager.perform(.readState)
             .receive(on: DispatchQueue.main)
-            .assign(to: \.log, on: self)
+            .sink { [weak self] reading in
+                self?.log = reading.log
+            }
     }
 
     func reset() {
         inputSubscription = nfcManager.perform(.reset)
             .receive(on: DispatchQueue.main)
-            .assign(to: \.log, on: self)
+            .sink { [weak self] reading in
+                self?.log = reading.log
+            }
     }
 
     func activate() {
         inputSubscription = nfcManager.perform(.activate)
             .receive(on: DispatchQueue.main)
-            .assign(to: \.log, on: self)
+            .sink { [weak self] reading in
+                self?.log = reading.log
+            }
     }
 
     func dump() {
         inputSubscription = nfcManager.perform(.readFRAM)
             .receive(on: DispatchQueue.main)
-            .assign(to: \.log, on: self)
+            .sink { [weak self] reading in
+                self?.log = reading.log
+            }
+    }
+
+    func readHistory() {
+        inputSubscription = nfcManager.perform(.readHistory)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] reading in
+                self?.log = reading.log
+            }
     }
 
     func changeRegion(to region: SensorRegion) {
         inputSubscription = nfcManager.perform(.changeRegion(region))
             .receive(on: DispatchQueue.main)
-            .assign(to: \.log, on: self)
+            .sink { [weak self] reading in
+                self?.log = reading.log
+            }
     }
 
     func saveUnlockCredentials() {
