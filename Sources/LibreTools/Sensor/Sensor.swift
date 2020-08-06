@@ -6,8 +6,6 @@
 //  Copyright © 2020 Ivan Valkou. All rights reserved.
 //
 
-#if canImport(Combine)
-
 import Foundation
 
 enum SensorType {
@@ -111,5 +109,3 @@ extension SensorRegion: CustomStringConvertible {
 extension SensorRegion: Identifiable {
     public var id: UInt8 { rawValue }
 }
-
-#endif

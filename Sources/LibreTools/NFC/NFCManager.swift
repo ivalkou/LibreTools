@@ -88,50 +88,62 @@ final class BaseNFCManager: NSObject, NFCManager {
         }
 
         log("Tag connected")
-        let uid = tag.identifier
+        let uid = Data(tag.identifier.reversed())
         log("UID: \(uid.hexEncodedString())")
 
         sessionToken = tag.getPatchInfo()
-            .flatMap { data -> AnyPublisher<(Data, String), Error> in
-                let patchInfo = data.hexEncodedString()
-                let sensorType = SensorType(patchInfo: patchInfo)
-                let region = SensorRegion(rawValue: [UInt8](data)[3]) ?? .unknown
-                self.log("Patch Info: " + patchInfo)
+            .flatMap { patchInfo -> AnyPublisher<(SensorType, Data, Data), Error> in
+                let sensorType = SensorType(patchInfo: patchInfo.hexEncodedString())
+                let region = SensorRegion(rawValue: [UInt8](patchInfo)[3]) ?? .unknown
+                self.log("Patch Info: " + patchInfo.hexEncodedString())
                 self.log("Type: " + sensorType.displayType)
                 self.log("Region: \(region)")
                 switch actionRequest {
                 case .readState:
-                    return tag.readFRAM(blocksCount: 1)
-                        .map { ($0, patchInfo) }
+                    let count = (sensorType == .libre2 || sensorType == .libreUS14day) ? 43 : 1
+                    return tag.readFRAM(blocksCount: count)
+                        .map { (sensorType, $0, patchInfo) }
                         .eraseToAnyPublisher()
                 case .readFRAM:
                     return tag.readFRAM(blocksCount: 0xFF)
-                        .map { ($0, patchInfo) }
+                        .map { (sensorType, $0, patchInfo) }
                         .eraseToAnyPublisher()
                 case .readHistory:
                     return tag.readFRAM(blocksCount: 43)
-                        .map { ($0, patchInfo) }
+                        .map { (sensorType, $0, patchInfo) }
                         .eraseToAnyPublisher()
                 case .reset:
                     guard let unlockCode = self.unlockCode, let password = self.password else {
                         return Fail(error: NFCManagerError.missingUnlockParameters).eraseToAnyPublisher()
                     }
+                    guard sensorType.isWritable else {
+                        return Fail(error: NFCManagerError.unsupportedSensorType).eraseToAnyPublisher()
+                    }
+
                     return tag.reinitialize(sensorType: sensorType, unlockCode: unlockCode, password: password)
-                        .map { (Data(), patchInfo) }
+                        .map { (sensorType, Data(), patchInfo) }
                         .eraseToAnyPublisher()
                 case .activate:
                     guard let password = self.password else {
                         return Fail(error: NFCManagerError.missingUnlockParameters).eraseToAnyPublisher()
                     }
+                    guard sensorType.isWritable else {
+                        return Fail(error: NFCManagerError.unsupportedSensorType).eraseToAnyPublisher()
+                    }
+
                     return tag.activate(sensorType: sensorType, password: password)
-                        .map { (Data(), patchInfo) }
+                        .map { (sensorType, Data(), patchInfo) }
                         .eraseToAnyPublisher()
                 case let .changeRegion(region):
                     guard let unlockCode = self.unlockCode, let password = self.password else {
                         return Fail(error: NFCManagerError.missingUnlockParameters).eraseToAnyPublisher()
                     }
+                    guard sensorType.isWritable else {
+                        return Fail(error: NFCManagerError.unsupportedSensorType).eraseToAnyPublisher()
+                    }
+
                     return tag.changeRegion(sensorType: sensorType, region: region, unlockCode: unlockCode, password: password)
-                        .map { (Data(), patchInfo) }
+                        .map { (sensorType, Data(), patchInfo) }
                         .eraseToAnyPublisher()
                 }
             }
@@ -147,16 +159,24 @@ final class BaseNFCManager: NSObject, NFCManager {
                         self.session?.invalidate(errorMessage: error.localizedDescription)
                     }
                 },
-                receiveValue: { self.processResult(data: $0.0, uid: uid, patchInfo: $0.1) }
+                receiveValue: { self.processResult(sensorType: $0.0, data: $0.1, uid: uid, patchInfo: $0.2) }
             )
     }
 
 
-    private func processResult(data: Data, uid: Data, patchInfo: String) {
+    private func processResult(sensorType: SensorType, data: Data, uid: Data, patchInfo: Data) {
         dispatchPrecondition(condition: .onQueue(accessQueue))
-
         print(data)
-        let bytes = [UInt8](data)
+
+        let bytes:[UInt8] = {
+            switch sensorType {
+            case .libre2, .libreUS14day:
+                return Libre2.decryptFRAM(type: sensorType, id: [UInt8](uid), info: [UInt8](patchInfo), data: [UInt8](data))!
+            default:
+                return [UInt8](data)
+            }
+        }()
+
         var sensorData: SensorData? = nil
 
         switch actionRequest {
@@ -176,7 +196,7 @@ final class BaseNFCManager: NSObject, NFCManager {
         case .readHistory:
             let state = SensorState(rawValue: bytes[4]) ?? .unknown
             log("Sensor state: \(state) (\(state.rawValue))")
-            sensorData = SensorData(uuid: uid, bytes: bytes, date: Date(), patchInfo: patchInfo)
+            sensorData = SensorData(uuid: uid, bytes: bytes, date: Date(), patchInfo: patchInfo.hexEncodedString())
             if let sensorData = sensorData {
                 log("Age: \(sensorData.humanReadableSensorAge)")
                 log("History: \(sensorData.glucoseHistory)")
@@ -191,7 +211,6 @@ final class BaseNFCManager: NSObject, NFCManager {
     private func log(_ message: String) {
         print(message)
         sessionLog += message + "\n"
-//        readingsSubject.send(Reading(log: sessionLog, sensorData: nil))
     }
 }
 

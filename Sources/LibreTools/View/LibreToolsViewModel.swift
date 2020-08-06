@@ -36,6 +36,13 @@ final class LibreToolsViewModel: ObservableObject {
             ?? UserDefaults.standard.string(forKey: Config.unlockCodeKey) ?? ""
         self.password = password.map { $0.hexEncodedString() }
             ?? UserDefaults.standard.string(forKey: Config.passwordKey) ?? ""
+
+//        if let bytes = Libre2.decryptFRAM(type: .libre2, id: Libre2.Example2.sensorId, info: Libre2.Example2.sensorInfo, data: Libre2.Example2.buffer),
+//            let sensorData = SensorData(uuid: Data(Libre2.Example2.sensorId), bytes: bytes, patchInfo: nil) {
+//            print(Data(bytes).dumpString)
+//            print(sensorData.hasValidCRCs)
+//            print(sensorData.glucoseHistory)
+//        }
     }
 
     func read() {

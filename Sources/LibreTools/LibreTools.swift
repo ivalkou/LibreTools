@@ -62,6 +62,8 @@ public protocol NFCManager {
     func setCredentials(unlockCode: Int, password: Data)
 }
 
+#endif
+
 public enum ActionRequest {
     case readState
     case readFRAM
@@ -79,4 +81,4 @@ public enum SensorRegion: UInt8 {
     case unknown = 0x00
 }
 
-#endif
+
