@@ -11,15 +11,33 @@ import Foundation
 enum Libre2 {
     /// Decrypts 43 blocks of Libre 2 FRAM
     /// - Parameters:
+    ///   - type: Suppurted sensor type (.libre2, .libreUS14day)
     ///   - id: ID/Serial of the sensor. Could be retrieved from NFC as uid.
     ///   - info: Sensor info. Retrieved by sending command '0xa1' via NFC.
     ///   - data: Encrypted FRAM data
     /// - Returns: Decrypted FRAM data
-    static func decryptFRAM(id: [UInt8], info: [UInt8], data: [UInt8]) -> [UInt8] {
+    static func decryptFRAM(type: SensorType, id: [UInt8], info: [UInt8], data: [UInt8]) -> [UInt8]? {
+        guard type == .libre2 || type == .libreUS14day else {
+            print("Unsupported sensor type")
+            return nil
+        }
+
         var result = [UInt8]()
 
         for i in 0 ..< 43 {
-            let s1 = ((UInt16(id[5], id[4]) + (UInt16(info[5], info[4]) ^ 0x44)) + UInt16(i))
+            let s1: UInt16 = {
+                switch type {
+                case .libreUS14day:
+                    if i < 3 || i >= 40 {
+                        // For header and footer it is a fixed value.
+                        return 0xcadc
+                    }
+                    return UInt16(info[5], info[4])
+                case .libre2:
+                    return ((UInt16(id[5], id[4]) + (UInt16(info[5], info[4]) ^ 0x44)) + UInt16(i))
+                default: fatalError("Unsupported sensor type")
+                }
+            }()
             let s2 = UInt16(id[3], id[2]) + key[2]
             let s3 = UInt16(id[1], id[0]) + (UInt16(i) << 1)
             let s4 = 0x241a ^ key[3]
