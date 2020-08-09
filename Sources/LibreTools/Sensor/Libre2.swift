@@ -56,6 +56,11 @@ enum Libre2 {
         return result
     }
 
+    /// Decrypts Libre 2 BLE payload
+    /// - Parameters:
+    ///   - id: ID/Serial of the sensor. Could be retrieved from NFC as uid.
+    ///   - data: Encrypted BLE data
+    /// - Returns: Decrypted BLE data
     static func decryptBLE(id: [UInt8], data: [UInt8]) throws -> [UInt8] {
         let d = usefulFunction(id: id, x: 0x1b, y: 0x1b6a)
         let x = UInt16(d[1], d[0]) ^ UInt16(d[3], d[2]) | 0x63
