@@ -69,6 +69,13 @@ final class Crc {
         return calculatedCrc == enclosedCrc
     }
 
+    static func hasValidCrc16InLastTwoBytes(_ bytes: [UInt8]) -> Bool {
+            let calculatedCrc = Crc.crc16(Array(bytes.dropLast(2)), seed: 0xffff)
+        let enclosedCrc =  (UInt16(Array(bytes.suffix(2))[0]) << 8) | UInt16(Array(bytes.suffix(2))[1])
+
+            return calculatedCrc == enclosedCrc
+    }
+
     /// Returns a byte array with correct crc in first two bytes (calculated over the remaining bytes).
     ///
     /// In case some bytes of the original byte array are tweaked, the original crc does not match the remainaing bytes any more. This function calculates the correct crc of the bytes from byte #0x02 to the end and replaces the first two bytes with the correct crc.
