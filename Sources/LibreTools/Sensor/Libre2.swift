@@ -94,6 +94,11 @@ enum Libre2 {
 
         return result
     }
+
+    static func activateParameters(id: [UInt8]) -> Data {
+        let d = usefulFunction(id: id, x: 0x1b, y: 0x1b6a)
+        return Data([UInt8]([0x1b, d[0], d[1], d[2], d[3]]))
+    }
 }
 
 private extension Libre2 {

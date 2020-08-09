@@ -124,16 +124,21 @@ final class BaseNFCManager: NSObject, NFCManager {
                         .map { (sensorType, Data(), patchInfo) }
                         .eraseToAnyPublisher()
                 case .activate:
-                    guard let password = self.password else {
-                        return Fail(error: NFCManagerError.missingUnlockParameters).eraseToAnyPublisher()
-                    }
-                    guard sensorType.isWritable else {
+                    switch sensorType {
+                    case .libre1, .libre1new, .libreProH:
+                        guard let password = self.password else {
+                            return Fail(error: NFCManagerError.missingUnlockParameters).eraseToAnyPublisher()
+                        }
+                        return tag.activate(sensorType: sensorType, parameters: password)
+                            .map { (sensorType, Data(), patchInfo) }
+                            .eraseToAnyPublisher()
+                    case .libreUS14day, .libre2:
+                        return tag.activate(sensorType: sensorType, parameters: Libre2.activateParameters(id: [UInt8](uid)))
+                            .map { (sensorType, Data(), patchInfo) }
+                            .eraseToAnyPublisher()
+                    case .unknown:
                         return Fail(error: NFCManagerError.unsupportedSensorType).eraseToAnyPublisher()
                     }
-
-                    return tag.activate(sensorType: sensorType, password: password)
-                        .map { (sensorType, Data(), patchInfo) }
-                        .eraseToAnyPublisher()
                 case let .changeRegion(region):
                     guard let unlockCode = self.unlockCode, let password = self.password else {
                         return Fail(error: NFCManagerError.missingUnlockParameters).eraseToAnyPublisher()
@@ -171,7 +176,7 @@ final class BaseNFCManager: NSObject, NFCManager {
         let bytes:[UInt8] = {
             switch sensorType {
             case .libre2, .libreUS14day:
-                return Libre2.decryptFRAM(type: sensorType, id: [UInt8](uid), info: [UInt8](patchInfo), data: [UInt8](data))!
+                return try! Libre2.decryptFRAM(type: sensorType, id: [UInt8](uid), info: [UInt8](patchInfo), data: [UInt8](data))
             default:
                 return [UInt8](data)
             }
@@ -303,11 +308,15 @@ private extension NFCISO15693Tag {
         runCommand(.lock, parameters: password).asEmpty()
     }
 
-    func activate(sensorType: SensorType, password: Data) -> AnyPublisher<Void, Error> {
-        guard sensorType.isWritable else {
+    func activate(sensorType: SensorType, parameters: Data) -> AnyPublisher<Void, Error> {
+        switch sensorType {
+        case .libre1, .libre1new, .libreProH:
+            return runCommand(.activate, parameters: parameters).asEmpty()
+        case .libreUS14day, .libre2:
+            return runCommand(.libre2Universal, parameters: Data()).asEmpty()
+        case .unknown:
             return Fail<Void, Error>(error: NFCManagerError.unsupportedSensorType).eraseToAnyPublisher()
         }
-        return runCommand(.activate, parameters: password).asEmpty()
     }
 
     func reinitialize(sensorType: SensorType, unlockCode: Int, password: Data) -> AnyPublisher<Void, Error> {
@@ -357,6 +366,7 @@ struct CustomCommand {
     static let getPatchInfo = CustomCommand(code: 0xA1)
     static let lock = CustomCommand(code: 0xA2)
     static let rawRead = CustomCommand(code: 0xA3)
+    static let libre2Universal = CustomCommand(code: 0xA1)
 }
 
 extension Data {
