@@ -51,51 +51,31 @@ final class LibreToolsViewModel: ObservableObject {
     }
 
     func read() {
-        inputSubscription = nfcManager.perform(.readState)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] reading in
-                self?.log = reading.log
-            }
+        perform(request: .readState)
     }
 
     func reset() {
-        inputSubscription = nfcManager.perform(.reset)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] reading in
-                self?.log = reading.log
-            }
+        perform(request: .reset)
     }
 
     func activate() {
-        inputSubscription = nfcManager.perform(.activate)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] reading in
-                self?.log = reading.log
-            }
+        perform(request: .activate)
     }
 
     func dump() {
-        inputSubscription = nfcManager.perform(.readFRAM)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] reading in
-                self?.log = reading.log
-            }
+        perform(request: .readFRAM)
     }
 
     func readHistory() {
-        inputSubscription = nfcManager.perform(.readHistory)
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] reading in
-                self?.log = reading.log
-            }
+        perform(request: .readHistory)
     }
 
     func changeRegion(to region: SensorRegion) {
-        inputSubscription = nfcManager.perform(.changeRegion(region))
-            .receive(on: DispatchQueue.main)
-            .sink { [weak self] reading in
-                self?.log = reading.log
-            }
+        perform(request: .changeRegion(region))
+    }
+
+    func removeLifetimeLimitation() {
+        perform(request: .removeLifetimeLimitation)
     }
 
     func saveUnlockCredentials() {
@@ -108,6 +88,14 @@ final class LibreToolsViewModel: ObservableObject {
         UserDefaults.standard.set(password, forKey: Config.passwordKey)
 
         nfcManager.setCredentials(unlockCode: Int([UInt8](code)[0]), password: psw)
+    }
+
+    private func perform(request: ActionRequest) {
+        inputSubscription = nfcManager.perform(request)
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] reading in
+                self?.log = reading.log
+            }
     }
 }
 

@@ -71,6 +71,7 @@ public enum ActionRequest {
     case reset
     case activate
     case changeRegion(SensorRegion)
+    case removeLifetimeLimitation
 }
 
 public enum SensorRegion: UInt8 {

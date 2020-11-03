@@ -238,7 +238,7 @@ public extension SensorData {
 
         repeat {
             let record = UInt16(history[index + 1], history[index])
-            result.append(glucose(record))
+            result.append(rawGlucose(record))
             index += 6
         } while index < 192
 
@@ -251,14 +251,14 @@ public extension SensorData {
 
         repeat {
             let record = UInt16(trend[index + 1], trend[index])
-            result.append(glucose(record))
+            result.append(rawGlucose(record))
             index += 6
         } while index < 96
 
         return Array(result[nextTrendBlock...] + result[..<nextTrendBlock])
     }
 
-    func glucose(_ record: UInt16) -> UInt16 {
-       record & 0x3FFF / 6 - 37
+    func rawGlucose(_ record: UInt16) -> UInt16 {
+        record & 0x3FFF
     }
 }

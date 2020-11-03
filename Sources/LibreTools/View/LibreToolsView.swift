@@ -82,6 +82,10 @@ struct LibreToolsView: View {
                 Button("Change region") {
                     self.showingActionSheet = true
                 }
+
+                Button("Remove lifetime limitation") {
+                    self.viewModel.removeLifetimeLimitation()
+                }
             }
         )
     }

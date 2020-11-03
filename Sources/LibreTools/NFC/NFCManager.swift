@@ -150,6 +150,14 @@ final class BaseNFCManager: NSObject, NFCManager {
                     return tag.changeRegion(sensorType: sensorType, region: region, unlockCode: unlockCode, password: password)
                         .map { (sensorType, Data(), patchInfo) }
                         .eraseToAnyPublisher()
+                case .removeLifetimeLimitation:
+                    guard let unlockCode = self.unlockCode, let password = self.password else {
+                        return Fail(error: NFCManagerError.missingUnlockParameters).eraseToAnyPublisher()
+                    }
+
+                    return tag.removeLifetimeLimitation(sensorType: sensorType, unlockCode: unlockCode, password: password)
+                        .map { (sensorType, Data(), patchInfo) }
+                        .eraseToAnyPublisher()
                 }
             }
             .receive(on: accessQueue)
@@ -204,9 +212,11 @@ final class BaseNFCManager: NSObject, NFCManager {
             sensorData = SensorData(uuid: uid, bytes: bytes, date: Date(), patchInfo: patchInfo.hexEncodedString())
             if let sensorData = sensorData {
                 log("Age: \(sensorData.humanReadableSensorAge)")
-                log("History: \(sensorData.glucoseHistory)")
-                log("Trend: \(sensorData.glucoseTrend)")
+                log("Raw history: \(sensorData.glucoseHistory)")
+                log("Raw trend: \(sensorData.glucoseTrend)")
             }
+        case .removeLifetimeLimitation:
+            log("Lifetime limitation removed")
         case .none: break
         }
         actionRequest = nil
@@ -347,6 +357,31 @@ private extension NFCISO15693Tag {
             .flatMap { bytes -> AnyPublisher<Void, Error> in
                 var bytes = bytes
                 bytes[3] = region.rawValue
+                bytes = Crc.bytesWithCorrectCRC(bytes)
+                return self.unlock(unlockCode, password: password)
+                    .flatMap {
+                        self.writeBlock(number: 0x28, data: Data(bytes[0 ..< 8])).asEmpty()
+                    }
+                    .eraseToAnyPublisher()
+            }
+            .flatMap { self.lock(password: password) }
+            .eraseToAnyPublisher()
+    }
+
+    func removeLifetimeLimitation(sensorType: SensorType, unlockCode: Int, password: Data) -> AnyPublisher<Void, Error> {
+        guard sensorType.isWritable else {
+            return Fail<Void, Error>(error: NFCManagerError.unsupportedSensorType).eraseToAnyPublisher()
+        }
+
+        return Publishers
+            .Sequence(sequence: (0x28 ... 0x2A).map { self.readBlock(number: $0) })
+            .flatMap { $0 }
+            .collect()
+            .map { [UInt8]($0.reduce(Data(), +) )}
+            .flatMap { bytes -> AnyPublisher<Void, Error> in
+                var bytes = bytes
+                bytes[6] = 0xFF
+                bytes[7] = 0xFF
                 bytes = Crc.bytesWithCorrectCRC(bytes)
                 return self.unlock(unlockCode, password: password)
                     .flatMap {
