@@ -15,6 +15,7 @@ import Foundation
 enum NFCManagerError: Error, LocalizedError {
     case unsupportedSensorType
     case missingUnlockParameters
+    case tagDamaged
 
     var errorDescription: String? {
         switch self {
@@ -22,6 +23,8 @@ enum NFCManagerError: Error, LocalizedError {
             return "Unsupported Sensor Type"
         case .missingUnlockParameters:
             return "Missing Unlock Parameters"
+        case .tagDamaged:
+            return "Tag damaged"
         }
     }
 }
@@ -93,8 +96,12 @@ final class BaseNFCManager: NSObject, NFCManager {
 
         sessionToken = tag.getPatchInfo()
             .flatMap { patchInfo -> AnyPublisher<(SensorType, Data, Data), Error> in
+                guard !patchInfo.isEmpty || self.actionRequest == .recover else {
+                    return Fail(error: NFCManagerError.tagDamaged).eraseToAnyPublisher()
+                }
+
                 let sensorType = SensorType(patchInfo: patchInfo.hexEncodedString())
-                let region = SensorRegion(rawValue: [UInt8](patchInfo)[3]) ?? .unknown
+                let region = SensorRegion(rawValue: [UInt8](patchInfo)[safe: 3] ?? 0) ?? .unknown
                 self.log("Patch Info: " + patchInfo.hexEncodedString())
                 self.log("Type: " + sensorType.displayType)
                 self.log("Region: \(region)")
@@ -158,6 +165,14 @@ final class BaseNFCManager: NSObject, NFCManager {
                     return tag.removeLifetimeLimitation(sensorType: sensorType, unlockCode: unlockCode, password: password)
                         .map { (sensorType, Data(), patchInfo) }
                         .eraseToAnyPublisher()
+                case .recover:
+                    guard let unlockCode = self.unlockCode, let password = self.password else {
+                        return Fail(error: NFCManagerError.missingUnlockParameters).eraseToAnyPublisher()
+                    }
+
+                    return tag.recoverCommandSection(sensorType: .libre1new, unlockCode: unlockCode, password: password)
+                        .map { (sensorType, Data(), patchInfo) }
+                        .eraseToAnyPublisher()
                 }
             }
             .receive(on: accessQueue)
@@ -169,7 +184,15 @@ final class BaseNFCManager: NSObject, NFCManager {
                         self.session?.invalidate()
                     case let .failure(error):
                         self.log("Error: \(error.localizedDescription)")
-                        self.session?.invalidate(errorMessage: error.localizedDescription)
+                        if let nfcError = error as? NFCManagerError, nfcError == .tagDamaged {
+                            self.accessQueue.async {
+                                self.actionRequest = .recover
+                                self.processTag(tag)
+                            }
+                        } else {
+                            self.session?.invalidate(errorMessage: error.localizedDescription)
+                        }
+
                     }
                 },
                 receiveValue: { self.processResult(sensorType: $0.0, data: $0.1, uid: uid, patchInfo: $0.2) }
@@ -217,6 +240,8 @@ final class BaseNFCManager: NSObject, NFCManager {
             }
         case .removeLifetimeLimitation:
             log("Lifetime limitation removed")
+        case .recover:
+            log("Tag recovered. Please retry your action")
         case .none: break
         }
         actionRequest = nil
@@ -330,6 +355,23 @@ private extension NFCISO15693Tag {
     }
 
     func reinitialize(sensorType: SensorType, unlockCode: Int, password: Data) -> AnyPublisher<Void, Error> {
+        return changeCommandSection(
+            sensorType: sensorType,
+            unlockCode: unlockCode,
+            password: password
+        )
+        .flatMap { self.getPatchInfo().asEmpty() }
+        .flatMap {
+            self.recoverCommandSection(
+                sensorType: sensorType,
+                unlockCode: unlockCode,
+                password: password
+            )
+        }
+        .eraseToAnyPublisher()
+    }
+
+    func changeCommandSection(sensorType: SensorType, unlockCode: Int, password: Data) -> AnyPublisher<Void, Error> {
         guard sensorType.isWritable else {
             return Fail<Void, Error>(error: NFCManagerError.unsupportedSensorType).eraseToAnyPublisher()
         }
@@ -337,8 +379,15 @@ private extension NFCISO15693Tag {
         return unlock(unlockCode, password: password)
             .flatMap { self.writeBlock(number: sensorType.commandBlockNumber, data: sensorType.commandBlockModified) }
             .flatMap { self.writeBlock(number: sensorType.crcBlockNumber, data: sensorType.crcBlockModified) }
-            .flatMap { self.getPatchInfo().asEmpty() }
-            .flatMap { self.writeBlock(number: sensorType.commandBlockNumber, data: sensorType.commandBlockOriginal)}
+            .eraseToAnyPublisher()
+    }
+
+    func recoverCommandSection(sensorType: SensorType, unlockCode: Int, password: Data) -> AnyPublisher<Void, Error> {
+        guard sensorType.isWritable else {
+            return Fail<Void, Error>(error: NFCManagerError.unsupportedSensorType).eraseToAnyPublisher()
+        }
+
+        return writeBlock(number: sensorType.commandBlockNumber, data: sensorType.commandBlockOriginal)
             .flatMap { self.writeBlock(number: sensorType.crcBlockNumber, data: sensorType.crcBlockOriginal) }
             .flatMap { self.lock(password: password) }
             .eraseToAnyPublisher()
@@ -419,6 +468,12 @@ extension Data {
         }
 
         return result
+    }
+}
+
+extension Collection {
+    subscript (safe index: Index) -> Element? {
+        return indices.contains(index) ? self[index] : nil
     }
 }
 

@@ -64,7 +64,7 @@ public protocol NFCManager {
 
 #endif
 
-public enum ActionRequest {
+public enum ActionRequest: Equatable {
     case readState
     case readFRAM
     case readHistory
@@ -72,6 +72,7 @@ public enum ActionRequest {
     case activate
     case changeRegion(SensorRegion)
     case removeLifetimeLimitation
+    case recover
 }
 
 public enum SensorRegion: UInt8 {
