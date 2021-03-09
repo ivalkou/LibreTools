@@ -151,8 +151,8 @@ private extension Libre2 {
         let low = blockKey[0]
         let high = blockKey[1]
 
-        let r1 = low ^ 0x4344
-        let r2 = high ^ 0x4163
+        let r1 = low ^ 0x4163
+        let r2 = high ^ 0x4344
 
         return [
             UInt8(truncatingIfNeeded: r1),
