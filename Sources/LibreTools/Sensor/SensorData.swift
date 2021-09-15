@@ -107,29 +107,29 @@ public struct SensorData {
                 let sub = patchInfo[0 ..< 2]
                 switch sub {
                 case "70":
-                    sensorName = "Libre Pro/H"
+                    sensorName = "Pro/H"
                 case "9D":
-                    sensorName = "Libre 2"
+                    sensorName = "2"
                 case "DF":
-                    sensorName = "Libre 1"
+                    sensorName = "1"
                 case "E5":
-                    sensorName = "Libre US 14 Days"
+                    sensorName = "US 14 Days"
                 default:
-                    sensorName = "Libre"
+                    sensorName = "Unknown"
                 }
             } else {
-                sensorName = "Libre"
+                sensorName = "Unknown"
             }
         }
     }
-    var sensorName = "Libre"
+    var sensorName = "Unknown"
     
     var isSecondSensor: Bool {
-        return sensorName == "Libre 2" || sensorName == "Libre US 14 Days"
+        return sensorName == "2" || sensorName == "US 14 Days"
     }
     
     var isFirstSensor: Bool {
-        return sensorName == "Libre" || sensorName == "Libre 1" || sensorName == "Libre Pro/H"
+        return sensorName == "Unknown" || sensorName == "1" || sensorName == "Pro/H"
     }
     
     var humanReadableSensorAge : String {

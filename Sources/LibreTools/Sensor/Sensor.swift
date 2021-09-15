@@ -29,11 +29,11 @@ enum SensorType {
 
     var displayType: String {
         switch self {
-        case .libre1: return "Libre 1 old"
-        case .libre1new: return "Libre 1 new"
-        case .libreUS14day: return "Libre US 14day"
-        case .libre2: return "Libre 2"
-        case .libreProH: return "Libre Pro/H"
+        case .libre1: return "1 old"
+        case .libre1new: return "1 new"
+        case .libreUS14day: return "US 14day"
+        case .libre2: return "2"
+        case .libreProH: return "Pro/H"
         default: return "unknown"
         }
     }
@@ -50,7 +50,7 @@ enum SensorType {
         switch self {
         case .libre1: return Data([UInt8]([0x01, 0x6E, 0x21, 0x83, 0xF2, 0x90, 0x07, 0x00]))
         case .libre1new: return Data([UInt8]([0x31, 0xD5, 0x21, 0x83, 0xF2, 0x90, 0x07, 0x00]))
-        default: fatalError("Unsuppotred sensor type")
+        default: fatalError("Unsuppotred tag type")
         }
     }
 
@@ -58,7 +58,7 @@ enum SensorType {
         switch self {
         case .libre1: return Data([UInt8]([0x9E, 0x42, 0x21, 0x83, 0xF2, 0x90, 0x07, 0x00]))
         case .libre1new: return Data([UInt8]([0xAE, 0xF9 , 0x21, 0x83, 0xF2, 0x90, 0x07, 0x00]))
-        default: fatalError("Unsuppotred sensor type")
+        default: fatalError("Unsuppotred tag type")
         }
     }
 

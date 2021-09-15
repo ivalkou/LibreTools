@@ -218,20 +218,20 @@ final class BaseNFCManager: NSObject, NFCManager {
         switch actionRequest {
         case .readState:
             let state = SensorState(rawValue: bytes[4]) ?? .unknown
-            log("Sensor state: \(state) (\(state.rawValue))")
+            log("Tag state: \(state) (\(state.rawValue))")
         case .readFRAM:
             let state = SensorState(rawValue: bytes[4]) ?? .unknown
-            log("Sensor state: \(state) (\(state.rawValue))")
+            log("Tag state: \(state) (\(state.rawValue))")
             log("\nFRAM dump:\n\n\(data.dumpString)")
         case .activate:
-            log("Sensor activated successfully")
+            log("Tag activated successfully")
         case .reset:
-            log("Sensor restarted successfully")
+            log("Tag restarted successfully")
         case let .changeRegion(region):
             log("Region changed to \(region)")
         case .readHistory:
             let state = SensorState(rawValue: bytes[4]) ?? .unknown
-            log("Sensor state: \(state) (\(state.rawValue))")
+            log("Tag state: \(state) (\(state.rawValue))")
             sensorData = SensorData(uuid: uid, bytes: bytes, date: Date(), patchInfo: patchInfo.hexEncodedString())
             if let sensorData = sensorData {
                 log("Age: \(sensorData.humanReadableSensorAge)")
