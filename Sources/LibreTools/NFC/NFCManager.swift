@@ -6,8 +6,6 @@
 //  Copyright © 2020 Ivan Valkou. All rights reserved.
 //
 
-#if canImport(Combine)
-
 import CoreNFC
 import Combine
 import Foundation
@@ -173,6 +171,18 @@ final class BaseNFCManager: NSObject, NFCManager {
                     return tag.recoverCommandSection(sensorType: .libre1new, unlockCode: unlockCode, password: password)
                         .map { (sensorType, Data(), patchInfo) }
                         .eraseToAnyPublisher()
+                case .custom(let cmd, let data):
+                    return tag.runCommand(.init(code: cmd), parameters: data ?? Data())
+                        .map { data in (sensorType, data, patchInfo) }
+                        .eraseToAnyPublisher()
+                case let .readBlock(block):
+                    return tag.readBlock(number: block)
+                        .map { data in (sensorType, data, patchInfo) }
+                        .eraseToAnyPublisher()
+                case .writeBlock(let block, let data):
+                    return tag.writeBlock(number: block, data: data)
+                        .map { (sensorType, Data(), patchInfo) }
+                        .eraseToAnyPublisher()
                 }
             }
             .receive(on: accessQueue)
@@ -242,6 +252,12 @@ final class BaseNFCManager: NSObject, NFCManager {
             log("Lifetime limitation removed")
         case .recover:
             log("Tag recovered. Please retry your action")
+        case .custom:
+            log("Command succeeded")
+        case .readBlock:
+            log("Read succeeded")
+        case .writeBlock:
+            log("Write succeeded")
         case .none: break
         }
         actionRequest = nil
@@ -476,5 +492,3 @@ extension Collection {
         return indices.contains(index) ? self[index] : nil
     }
 }
-
-#endif

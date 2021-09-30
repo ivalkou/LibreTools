@@ -6,8 +6,6 @@
 //  Copyright © 2020 Ivan Valkou. All rights reserved.
 //
 
-#if canImport(Combine)
-
 import SwiftUI
 
 @available(iOS 13.0, OSX 10.15, tvOS 13.0, watchOS 6.0, *)
@@ -115,5 +113,3 @@ struct LibreToolsView: View {
         }
     }
 }
-
-#endif

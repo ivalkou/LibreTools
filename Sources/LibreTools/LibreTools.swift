@@ -6,8 +6,6 @@
 //  Copyright © 2020 Ivan Valkou. All rights reserved.
 //
 
-#if canImport(Combine)
-
 import SwiftUI
 import Combine
 
@@ -62,8 +60,6 @@ public protocol NFCManager {
     func setCredentials(unlockCode: Int, password: Data)
 }
 
-#endif
-
 public enum ActionRequest: Equatable {
     case readState
     case readFRAM
@@ -73,6 +69,10 @@ public enum ActionRequest: Equatable {
     case changeRegion(SensorRegion)
     case removeLifetimeLimitation
     case recover
+
+    case custom(cmd: Int, data: Data?)
+    case readBlock(UInt8)
+    case writeBlock(UInt8, data: Data)
 }
 
 public enum SensorRegion: UInt8 {
